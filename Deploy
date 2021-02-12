@@ -1,0 +1,3 @@
+* Regenerate key here: https://www.nuget.org/account/apikeys
+* `dotnet pack --configuration Release`
+* `dotnet nuget push .\src\Sour.Gherkin\nupkg\Sour.Gherkin.0.0.2.nupkg --source https://api.nuget.org/v3/index.json --api-key oy2iy6v4s4igsdbenr7aqdl4c5xyqfduje7vcskzehtri4`
