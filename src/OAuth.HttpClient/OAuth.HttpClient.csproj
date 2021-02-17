@@ -1,11 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <LangVersion>9</LangVersion>
-    <PackageId>OAuth.HttpClient</PackageId>
     <Authors>Duncan Roosma</Authors>
+    <Description>OAuth authentication utilitie that helps make OAuth authenticated httprequests</Description>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Title>OAuth.HttpClient</Title>
+    <PackageId>OAuth.HttpClient</PackageId>
+    <PackageTags>OAuth;IHttpClientBuilder</PackageTags>
+    <PackageProjectUrl>https://github.com/droosma/OAuth.HttpClient</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+    <RootNamespace>OAuth.HttpClient</RootNamespace>
+    <AssemblyName>OAuth.HttpClient</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />

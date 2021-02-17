@@ -77,14 +77,15 @@ namespace OAuth.HttpClient
                                                                                               new("grant_type", "client_credentials"),
                                                                                               new("scope", _settings.Scope)
                                                                                           }),
-                                                                cancellationToken);
+                                                                cancellationToken)
+                                                     .ConfigureAwait(false);
             if(!response.IsSuccessStatusCode)
             {
                 _authenticationFailed?.Invoke(response);
                 throw AuthenticationFailed.Create(response, _settings);
             }
 
-            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var oAuthToken = JsonConvert.DeserializeObject<OAuthToken>(responseBody);
 
             return (oAuthToken.AccessToken, oAuthToken.TimeToLive);

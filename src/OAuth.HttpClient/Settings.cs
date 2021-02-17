@@ -25,6 +25,10 @@ namespace OAuth.HttpClient
         public ClientSecret ClientSecret { get; }
         public string Scope { get; }
         public Uri Endpoint { get; }
+        
+        /// <summary>
+        /// The margin used for refreshing the token before given expiry time
+        /// </summary>
         public TimeSpan ExpireMargin { get; }
     }
 }

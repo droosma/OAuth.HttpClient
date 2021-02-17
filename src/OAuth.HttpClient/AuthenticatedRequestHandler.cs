@@ -20,7 +20,7 @@ namespace OAuth.HttpClient
                                                            .ConfigureAwait(false);
             request.Headers.Authorization = authorizationHeader;
 
-            return await base.SendAsync(request, cancellationToken);
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
     }
 }
