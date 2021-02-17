@@ -20,11 +20,11 @@ namespace OAuth.HttpClient
         private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
         private string _token = string.Empty;
 
-        protected OAuthAuthenticator(Func<System.Net.Http.HttpClient> httpClientFactory,
-                                     Settings settings,
-                                     Action<DateTimeOffset> fromCache = null,
-                                     Action<string, DateTimeOffset> retrieved = null,
-                                     Action<HttpResponseMessage> authenticationFailed = null)
+        public OAuthAuthenticator(Func<System.Net.Http.HttpClient> httpClientFactory,
+                                  Settings settings,
+                                  Action<DateTimeOffset> fromCache = null,
+                                  Action<string, DateTimeOffset> retrieved = null,
+                                  Action<HttpResponseMessage> authenticationFailed = null)
         {
             _httpClientFactory = httpClientFactory;
             _settings = settings;
