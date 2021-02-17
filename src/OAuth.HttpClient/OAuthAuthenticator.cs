@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace OAuth.HttpClient
 {
-    public abstract class OAuthAuthenticator : Authentication
+    public class OAuthAuthenticator : Authentication
     {
         private readonly Action<HttpResponseMessage> _authenticationFailed;
         private readonly Action<DateTimeOffset> _fromCache;
