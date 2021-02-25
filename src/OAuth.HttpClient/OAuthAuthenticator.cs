@@ -11,20 +11,20 @@ namespace OAuth.HttpClient
 {
     public class OAuthAuthenticator : Authentication
     {
-        private readonly Action<HttpResponseMessage> _authenticationFailed;
-        private readonly Action<DateTimeOffset> _fromCache;
+        private readonly Action<HttpResponseMessage>? _authenticationFailed;
+        private readonly Action<string, DateTimeOffset>? _fromCache;
         private readonly Func<System.Net.Http.HttpClient> _httpClientFactory;
-        private readonly Action<string, DateTimeOffset> _retrieved;
-        private readonly SemaphoreSlim _semaphore = new(1, 1); // Thread safe single execution of async task
+        private readonly Action<string, DateTimeOffset>? _retrieved;
+        private readonly Semaphore _semaphore = new(1, 1, name:nameof(OAuthAuthenticator)); // Thread safe single execution of async task
         private readonly Settings _settings;
         private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
         private string _token = string.Empty;
 
         public OAuthAuthenticator(Func<System.Net.Http.HttpClient> httpClientFactory,
                                   Settings settings,
-                                  Action<DateTimeOffset> fromCache = null,
-                                  Action<string, DateTimeOffset> retrieved = null,
-                                  Action<HttpResponseMessage> authenticationFailed = null)
+                                  Action<string, DateTimeOffset>? fromCache = null,
+                                  Action<string, DateTimeOffset>? retrieved = null,
+                                  Action<HttpResponseMessage>? authenticationFailed = null)
         {
             _httpClientFactory = httpClientFactory;
             _settings = settings;
@@ -44,13 +44,13 @@ namespace OAuth.HttpClient
 
         public async Task<AuthenticationHeaderValue> AuthorizationHeader(CancellationToken cancellationToken)
         {
-            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            _semaphore.WaitOne();
 
             try
             {
-                if(IsAuthenticationValid)
+                if (IsAuthenticationValid)
                 {
-                    _fromCache?.Invoke(_expiresAt);
+                    _fromCache?.Invoke(_token, DateTimeOffset.MaxValue);
                     return Value;
                 }
 
@@ -58,7 +58,7 @@ namespace OAuth.HttpClient
                 _token = token;
                 _expiresAt = Now().Add(expires).Subtract(_settings.ExpireMargin);
 
-                _retrieved?.Invoke(_token, _expiresAt);
+                _retrieved?.Invoke(token, _expiresAt);
                 return Value;
             }
             finally
@@ -67,10 +67,10 @@ namespace OAuth.HttpClient
             }
         }
 
-        private async Task<(string Token, TimeSpan TimeToLive)> Authenticate(CancellationToken cancellationToken)
+        private async Task<(string, TimeSpan)> Authenticate(CancellationToken cancellationToken)
         {
             var response = await _httpClientFactory().PostAsync(_settings.Endpoint,
-                                                                new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                                new FormUrlEncodedContent(new List<KeyValuePair<string?, string?>>
                                                                                           {
                                                                                               new("client_id", _settings.ClientId.Value),
                                                                                               new("client_secret", _settings.ClientSecret.Value),
@@ -79,7 +79,7 @@ namespace OAuth.HttpClient
                                                                                           }),
                                                                 cancellationToken)
                                                      .ConfigureAwait(false);
-            if(!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 _authenticationFailed?.Invoke(response);
                 throw AuthenticationFailed.Create(response, _settings);
@@ -94,7 +94,7 @@ namespace OAuth.HttpClient
         private class OAuthToken
         {
             [JsonProperty("access_token")]
-            public string AccessToken { get; private set; }
+            public string AccessToken { get; private set; } = string.Empty;
 
             [JsonProperty("expires_in")]
             private int ExpiresIn { get; set; }
