@@ -15,7 +15,7 @@ namespace OAuth.HttpClient
         private readonly Action<string, DateTimeOffset>? _fromCache;
         private readonly Func<System.Net.Http.HttpClient> _httpClientFactory;
         private readonly Action<string, DateTimeOffset>? _retrieved;
-        private readonly Semaphore _semaphore = new(1, 1, name:nameof(OAuthAuthenticator)); // Thread safe single execution of async task
+        private readonly SemaphoreSlim _semaphore = new(1, 1); // Thread safe single execution of async task
         private readonly Settings _settings;
         private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
         private string _token = string.Empty;
@@ -44,7 +44,7 @@ namespace OAuth.HttpClient
 
         public async Task<AuthenticationHeaderValue> AuthorizationHeader(CancellationToken cancellationToken)
         {
-            _semaphore.WaitOne();
+            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             try
             {
