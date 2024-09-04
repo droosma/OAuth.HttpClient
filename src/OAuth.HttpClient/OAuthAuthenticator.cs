@@ -9,29 +9,17 @@ using Newtonsoft.Json;
 
 namespace OAuth.HttpClient
 {
-    public class OAuthAuthenticator : Authentication
+    public class OAuthAuthenticator(
+        Func<System.Net.Http.HttpClient> httpClientFactory,
+        Settings settings,
+        Action<string, DateTimeOffset>? fromCache = null,
+        Action<string, DateTimeOffset>? retrieved = null,
+        Action<HttpResponseMessage>? authenticationFailed = null)
+        : Authentication
     {
-        private readonly Action<HttpResponseMessage>? _authenticationFailed;
-        private readonly Action<string, DateTimeOffset>? _fromCache;
-        private readonly Func<System.Net.Http.HttpClient> _httpClientFactory;
-        private readonly Action<string, DateTimeOffset>? _retrieved;
-        private readonly SemaphoreSlim _semaphore = new(1, 1); // Thread safe single execution of async task
-        private readonly Settings _settings;
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
         private DateTimeOffset _expiresAt = DateTimeOffset.MinValue;
         private string _token = string.Empty;
-
-        public OAuthAuthenticator(Func<System.Net.Http.HttpClient> httpClientFactory,
-                                  Settings settings,
-                                  Action<string, DateTimeOffset>? fromCache = null,
-                                  Action<string, DateTimeOffset>? retrieved = null,
-                                  Action<HttpResponseMessage>? authenticationFailed = null)
-        {
-            _httpClientFactory = httpClientFactory;
-            _settings = settings;
-            _fromCache = fromCache;
-            _retrieved = retrieved;
-            _authenticationFailed = authenticationFailed;
-        }
 
         public Func<DateTimeOffset> Now { private get; set; } = () => DateTimeOffset.UtcNow;
 
@@ -50,15 +38,15 @@ namespace OAuth.HttpClient
             {
                 if (IsAuthenticationValid)
                 {
-                    _fromCache?.Invoke(_token, DateTimeOffset.MaxValue);
+                    fromCache?.Invoke(_token, DateTimeOffset.MaxValue);
                     return Value;
                 }
 
                 var (token, expires) = await Authenticate(cancellationToken).ConfigureAwait(false);
                 _token = token;
-                _expiresAt = Now().Add(expires).Subtract(_settings.ExpireMargin);
+                _expiresAt = Now().Add(expires).Subtract(settings.ExpireMargin);
 
-                _retrieved?.Invoke(token, _expiresAt);
+                retrieved?.Invoke(token, _expiresAt);
                 return Value;
             }
             finally
@@ -69,24 +57,29 @@ namespace OAuth.HttpClient
 
         private async Task<(string, TimeSpan)> Authenticate(CancellationToken cancellationToken)
         {
-            var response = await _httpClientFactory().PostAsync(_settings.Endpoint,
-                                                                new FormUrlEncodedContent(new List<KeyValuePair<string?, string?>>
-                                                                                          {
-                                                                                              new("client_id", _settings.ClientId.Value),
-                                                                                              new("client_secret", _settings.ClientSecret.Value),
-                                                                                              new("grant_type", "client_credentials"),
-                                                                                              new("scope", _settings.Scope)
-                                                                                          }),
-                                                                cancellationToken)
-                                                     .ConfigureAwait(false);
+            var response = await httpClientFactory().PostAsync(settings.Endpoint,
+                                                               new FormUrlEncodedContent([
+                                                                   new KeyValuePair<string, string>("client_id", settings.ClientId.Value),
+                                                                   new KeyValuePair<string, string>("client_secret", settings.ClientSecret.Value),
+                                                                   new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                                                                   new KeyValuePair<string, string>("scope", settings.Scope)
+                                                               ]),
+                                                               cancellationToken)
+                                                    .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                _authenticationFailed?.Invoke(response);
-                throw AuthenticationFailed.Create(response, _settings);
+                authenticationFailed?.Invoke(response);
+                throw AuthenticationFailed.Create(response, settings);
             }
 
             var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var oAuthToken = JsonConvert.DeserializeObject<OAuthToken>(responseBody);
+
+            if (oAuthToken is null)
+            {
+                authenticationFailed?.Invoke(response);
+                throw AuthenticationFailed.Create(response, settings);
+            }
 
             return (oAuthToken.AccessToken, oAuthToken.TimeToLive);
         }
