@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Authors>Duncan Roosma</Authors>
     <Description>OAuth authentication utilitie that helps make OAuth authenticated httprequests</Description>
